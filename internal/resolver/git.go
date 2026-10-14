@@ -79,6 +79,11 @@ func (g Git) Resolve(pane *state.PaneState) (Parts, bool) {
 // label reduces a checkout to what a tab says about it, or "" when it says
 // nothing worth the width.
 func (g Git) label(checkout git.Checkout) string {
+	// Shown even on the trunk: `main~2` says how far the work has come from it.
+	if checkout.JJ != "" {
+		return shortenJJ(Sanitize(checkout.JJ, 0), g.maxLength)
+	}
+
 	if checkout.Branch == "" {
 		// A detached HEAD is the one place a bare hash belongs in a title: it
 		// is where commits get lost, and no name is being left behind.
@@ -159,6 +164,24 @@ func shortenBranch(branch string, maxLength int) string {
 	}
 
 	return short
+}
+
+// jjDistance matches the `~N` a jj label carries when its bookmark is behind
+// the working copy.
+var jjDistance = regexp.MustCompile(`~\d+$`)
+
+// shortenJJ shortens a jj label's bookmark as a branch is shortened, keeping
+// its distance whole: `~3` cut to `~` would say nothing.
+func shortenJJ(label string, maxLength int) string {
+	distance := jjDistance.FindString(label)
+	name := strings.TrimSuffix(label, distance)
+
+	short := shortenBranch(name, max(maxLength-len(distance), 1))
+	if short == "" {
+		return ""
+	}
+
+	return short + distance
 }
 
 // cutAtSeparator shortens a value to maxWidth columns, ending on the last

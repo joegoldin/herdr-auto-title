@@ -122,19 +122,19 @@ func TestFormat(t *testing.T) {
 		{
 			"context and activity are joined",
 			Parts{Context: "dashboard", Activity: "Tests"},
-			"dashboard › Tests",
+			"Tests › dashboard",
 		},
 		{
 			// The agent's name sits between where the user is and what the
 			// agent is doing, and holds that place with either neighbour gone.
 			"every part is joined in reading order",
 			Parts{Context: "dashboard", Branch: "feat/oauth", Agent: "claude", Activity: "Scopes"},
-			"dashboard › feat/oauth › claude › Scopes",
+			"Scopes › claude › dashboard › feat/oauth",
 		},
 		{
 			"an agent that reported nothing stands alone",
 			Parts{Context: "dashboard", Agent: "claude"},
-			"dashboard › claude",
+			"claude › dashboard",
 		},
 		{"context alone carries no separator", Parts{Context: "dashboard"}, "dashboard"},
 		{"activity alone carries no separator", Parts{Activity: "Tests"}, "Tests"},
@@ -142,7 +142,7 @@ func TestFormat(t *testing.T) {
 		{
 			"untrusted parts are sanitized",
 			Parts{Context: "\x1b[31mdash\nboard", Activity: "Tests "},
-			"dash board › Tests",
+			"Tests › dash board",
 		},
 	}
 
@@ -199,7 +199,7 @@ func TestFormatTruncatesAssembledTitle(t *testing.T) {
 	t.Parallel()
 
 	got := Format(Parts{Context: "dashboard", Activity: "OAuth scopes"}, 12)
-	if got != "dashboard" {
-		t.Errorf("Format truncated to %q, want %q", got, "dashboard")
+	if got != "OAuth scopes" {
+		t.Errorf("Format truncated to %q, want %q", got, "OAuth scopes")
 	}
 }

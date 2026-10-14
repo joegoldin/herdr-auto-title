@@ -97,8 +97,8 @@ func TestTheBranchQualifiesTheDirectory(t *testing.T) {
 	pane.TerminalTitle = "auth.ts - Nvim"
 	pane.Processes = []state.Process{{Name: "nvim"}}
 
-	if got := resolveRepoPane(pane); got != "dashboard › feat/oauth › nvim › auth.ts" {
-		t.Errorf("title %q, want the branch between the directory and the work", got)
+	if got := resolveRepoPane(pane); got != "nvim › auth.ts › dashboard › feat/oauth" {
+		t.Errorf("title %q, want the branch after the work and the directory", got)
 	}
 }
 
@@ -221,7 +221,7 @@ func TestAWorktreeNamedAfterItsBranchSaysItOnce(t *testing.T) {
 	pane.TerminalTitle = "auth.ts - Nvim"
 	pane.Processes = []state.Process{{Name: "nvim"}}
 
-	if got := resolveRepoPane(pane); got != "dashboard › nvim › auth.ts" {
+	if got := resolveRepoPane(pane); got != "nvim › auth.ts › dashboard" {
 		t.Errorf("title %q, want the branch said once", got)
 	}
 }
@@ -236,7 +236,7 @@ func TestAWorktreeNamedAfterALongBranchSaysItOnce(t *testing.T) {
 	pane.TerminalTitle = "auth.ts - Nvim"
 	pane.Processes = []state.Process{{Name: "nvim"}}
 
-	if got := resolveRepoPane(pane); got != "fix-login-redirect › nvim › auth.ts" {
+	if got := resolveRepoPane(pane); got != "nvim › auth.ts › fix-login-redirect" {
 		t.Errorf("title %q, want the branch said once", got)
 	}
 }
@@ -316,5 +316,49 @@ func TestTheBranchIsCreditedLikeAContext(t *testing.T) {
 
 	if got := resolver.Resolve(tabWithPane(repoPane("feat/oauth", "main"))).Reason; got != "git" {
 		t.Errorf("reason %q, want git", got)
+	}
+}
+
+// jjPane builds a pane in a jj workspace whose label is label, the way
+// internal/reads leaves it: no branch or commit beside the jj label.
+func jjPane(label string) *state.PaneState {
+	return &state.PaneState{
+		Dir: dashboard,
+		Git: git.Checkout{JJ: label, Default: "main"},
+	}
+}
+
+func TestAJJLabelNamesTheWorkInPlaceOfTheDetachedHead(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		label string
+		want  string
+	}{
+		{"fix-scan~1", "dashboard › fix-scan~1"},
+		{"xkurvtuq", "dashboard › xkurvtuq"},
+		// Unlike a git branch, the trunk is shown: the distance is the point.
+		{"main~2", "dashboard › main~2"},
+		{"main", "dashboard › main"},
+	}
+
+	for _, test := range tests {
+		if got := resolveRepoPane(jjPane(test.label)); got != test.want {
+			t.Errorf("label %q: title %q, want %q", test.label, got, test.want)
+		}
+	}
+}
+
+func TestAShortenedJJBookmarkKeepsItsDistance(t *testing.T) {
+	t.Parallel()
+
+	got := shortenJJ("joe/performance-review-scan~12", DefaultBranchMaxLength)
+
+	if !strings.HasSuffix(got, "~12") {
+		t.Errorf("shortenJJ = %q, want the distance kept whole", got)
+	}
+
+	if name := strings.TrimSuffix(got, "~12"); name == "" || strings.Contains(name, "~") {
+		t.Errorf("shortenJJ = %q, want a shortened bookmark before the distance", got)
 	}
 }

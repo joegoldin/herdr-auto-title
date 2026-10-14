@@ -101,7 +101,7 @@ func TestEveryPaneIsNamedEvenWhenItEchoesItsTab(t *testing.T) {
 	)
 	h.poll()
 
-	if got := labelsOf(h, "wE:p1"); len(got) != 1 || got[0] != "dashboard › claude" {
+	if got := labelsOf(h, "wE:p1"); len(got) != 1 || got[0] != "claude › dashboard" {
 		t.Errorf("pane = %v, want the lone pane named for what it is about", got)
 	}
 }
@@ -268,7 +268,7 @@ func TestTheSettingsThatShapeATitleShapeAPaneLabel(t *testing.T) {
 		{
 			"a pane carries the agent its tab does not",
 			func(*Config) {},
-			"billing › claude",
+			"claude › billing",
 			"dashboard",
 		},
 		{
@@ -280,19 +280,19 @@ func TestTheSettingsThatShapeATitleShapeAPaneLabel(t *testing.T) {
 		{
 			"the length limit binds a pane too",
 			func(c *Config) { c.MaxLength = 6 },
-			"billin",
+			"claude",
 			"dashbo",
 		},
 		{
 			"the position leads the tab and not the pane",
 			func(c *Config) { c.ShowPosition = true },
-			"billing › claude",
+			"claude › billing",
 			"1 · dashboard",
 		},
 		{
 			"the pane ID leads the pane and not the tab",
 			func(c *Config) { c.ShowPaneID = true },
-			"[wE:p2] billing › claude",
+			"[wE:p2] claude › billing",
 			"dashboard",
 		},
 	}
@@ -392,7 +392,7 @@ func TestOnlyOnePaneOfATabCarriesTheBranchTheTabShows(t *testing.T) {
 	h.poll()
 
 	tab := h.client.Renames()[0].Label
-	if want := filepath.Base(repo) + " › feat/oauth › claude › Poll loop rework"; tab != want {
+	if want := "Poll loop rework › claude › " + filepath.Base(repo) + " › feat/oauth"; tab != want {
 		t.Fatalf("tab = %q, want %q", tab, want)
 	}
 
@@ -400,7 +400,7 @@ func TestOnlyOnePaneOfATabCarriesTheBranchTheTabShows(t *testing.T) {
 		t.Errorf("speaking pane = %v, want the branch its tab carries dropped", got)
 	}
 
-	if got := labelsOf(h, "wE:p2"); len(got) != 1 || got[0] != "fix/token › Token refresh" {
+	if got := labelsOf(h, "wE:p2"); len(got) != 1 || got[0] != "Token refresh › fix/token" {
 		t.Errorf("sibling pane = %v, want its own branch kept", got)
 	}
 }

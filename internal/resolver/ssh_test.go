@@ -112,7 +112,7 @@ func TestAnUnreadableDestinationKeepsTheMarkUnderARemoteTitle(t *testing.T) {
 	pane.TerminalTitle = "Restart the queue workers"
 
 	got := defaultChain().Resolve(tabWithPane(pane))
-	if want := "ssh › Restart the queue workers"; got.Name != want {
+	if want := "Restart the queue workers › ssh"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 }
@@ -247,7 +247,7 @@ func TestTheMarkSurvivesARemoteTitle(t *testing.T) {
 	pane.TerminalTitle = "Restart the queue workers"
 
 	got := defaultChain().Resolve(tabWithPane(pane))
-	if want := "ssh › prod-01 › Restart the queue workers"; got.Name != want {
+	if want := "Restart the queue workers › ssh › prod-01"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 }

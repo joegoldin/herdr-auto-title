@@ -18,7 +18,7 @@ func TestAgentTitleBeatsEverySourceBelowIt(t *testing.T) {
 		AgentTitle:    "Implement OAuth scopes",
 	}))
 
-	if want := "dashboard › claude › Implement OAuth scopes"; got.Name != want {
+	if want := "Implement OAuth scopes › claude › dashboard"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 
@@ -42,7 +42,7 @@ func TestAgentTitleOutranksAMeaningfulTerminalTitle(t *testing.T) {
 		AgentTitle:    "Implement OAuth scopes",
 	}))
 
-	if want := "dashboard › claude › Implement OAuth scopes"; got.Name != want {
+	if want := "Implement OAuth scopes › claude › dashboard"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 }
@@ -64,7 +64,7 @@ func TestGenericAgentNameFallsThrough(t *testing.T) {
 				AgentTitle:    title,
 			}))
 
-			if want := "dashboard › claude › Fix OAuth redirect"; got.Name != want {
+			if want := "Fix OAuth redirect › claude › dashboard"; got.Name != want {
 				t.Errorf("name = %q, want %q", got.Name, want)
 			}
 
@@ -94,7 +94,7 @@ func TestAgentEchoingItsOwnNameIsNotAgentContext(t *testing.T) {
 	}
 
 	got := defaultChain().Resolve(tabWithPane(pane))
-	if want := "dashboard › acme-bot"; got.Name != want {
+	if want := "acme-bot › dashboard"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 
@@ -126,7 +126,7 @@ func TestAnEchoedAgentNameIsDeclinedWhateverReportsIt(t *testing.T) {
 	}
 
 	got := defaultChain().Resolve(tabWithPane(pane))
-	if want := "dashboard › acme-bot"; got.Name != want {
+	if want := "acme-bot › dashboard"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 }
@@ -155,7 +155,7 @@ func TestAgentTitleWithNoDirectoryStandsAlone(t *testing.T) {
 		AgentTitle:  "Implement OAuth scopes",
 	}))
 
-	if want := "claude › Implement OAuth scopes"; got.Name != want {
+	if want := "Implement OAuth scopes › claude"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 }
@@ -181,7 +181,7 @@ func TestContextAndActivityComeFromTheSamePane(t *testing.T) {
 	})
 
 	got := defaultChain().Resolve(tab)
-	if want := "dashboard › claude › Implement OAuth scopes"; got.Name != want {
+	if want := "Implement OAuth scopes › claude › dashboard"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 }
@@ -199,7 +199,7 @@ func TestAnAgentTabDoesNotRepeatItsOwnDirectory(t *testing.T) {
 		AgentStatus:   herdr.AgentStatusWorking,
 	}))
 
-	if want := "dashboard › claude"; got.Name != want {
+	if want := "claude › dashboard"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 }
@@ -222,7 +222,7 @@ func TestAHiddenAgentNameLeavesTheWorkAlone(t *testing.T) {
 		AgentTitle:  "Implement OAuth scopes",
 	}))
 
-	if want := "dashboard › Implement OAuth scopes"; got.Name != want {
+	if want := "Implement OAuth scopes › dashboard"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 }
@@ -239,7 +239,7 @@ func TestAHiddenAgentNameIsAlsoStrippedFromTheWork(t *testing.T) {
 		AgentStatus:   herdr.AgentStatusWorking,
 	}))
 
-	if want := "dashboard › Implement OAuth scopes"; got.Name != want {
+	if want := "Implement OAuth scopes › dashboard"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 }
@@ -255,7 +255,7 @@ func TestASilentAgentHiddenLeavesTheTabToItsDirectory(t *testing.T) {
 		AgentStatus: herdr.AgentStatusWorking,
 	}
 
-	if got := defaultChain().Resolve(tabWithPane(pane)); got.Name != "dashboard › claude" {
+	if got := defaultChain().Resolve(tabWithPane(pane)); got.Name != "claude › dashboard" {
 		t.Errorf("name = %q, want dashboard › claude", got.Name)
 	}
 

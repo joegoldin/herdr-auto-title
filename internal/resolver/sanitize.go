@@ -141,11 +141,12 @@ func splitAtWidth(s string, maxWidth int) (head, rest string) {
 }
 
 // Format assembles a title from its parts and sanitizes the result as a whole.
-// The order is the one a title reads in: from the general to the particular.
+// What the pane is doing leads and where it is doing it follows, so a title
+// cut to maxLen loses the branch before the activity.
 func Format(parts Parts, maxLen int) string {
 	var b strings.Builder
 
-	for _, part := range []string{parts.Context, parts.Branch, parts.Agent, parts.Activity} {
+	for _, part := range []string{parts.Activity, parts.Agent, parts.Context, parts.Branch} {
 		if part == "" {
 			continue
 		}

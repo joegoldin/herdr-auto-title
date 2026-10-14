@@ -20,7 +20,7 @@ func TestATopicNamesATabTheTerminalTitleCannot(t *testing.T) {
 		AgentTopic:    "grill-me",
 	}))
 
-	if want := "dashboard › claude › grill-me"; got.Name != want {
+	if want := "grill-me › claude › dashboard"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 
@@ -45,7 +45,7 @@ func TestATerminalTitleOutranksTheTranscript(t *testing.T) {
 		AgentTopic:    "Something the session was called earlier",
 	}))
 
-	if want := "dashboard › claude › Fix OAuth redirect"; got.Name != want {
+	if want := "Fix OAuth redirect › claude › dashboard"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 
@@ -77,7 +77,7 @@ func TestATopicThatNamesTheAgentFallsThrough(t *testing.T) {
 		AgentTopic:  "Claude Code",
 	}))
 
-	if want := "dashboard › claude"; got.Name != want {
+	if want := "claude › dashboard"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 }

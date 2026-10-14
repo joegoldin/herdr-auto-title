@@ -42,6 +42,10 @@ type Checkout struct {
 	Commit string
 	// Default is the repository's default branch, empty when it records none.
 	Default string
+	// JJ is what a jj repository is working on, `bookmark~N` or a change id,
+	// set by internal/reads in place of Branch and Commit: a colocated
+	// repository's HEAD is always detached, so they name nothing that lasts.
+	JJ string
 	// CommonDir is where the repository keeps the refs its worktrees share. It
 	// is the same directory for a repository and every worktree of it, so two
 	// checkouts belong together exactly when it matches.

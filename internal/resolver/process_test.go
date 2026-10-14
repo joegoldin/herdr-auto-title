@@ -28,7 +28,7 @@ func TestTheKindQualifiesTheTitle(t *testing.T) {
 	}
 
 	got := defaultChain().Resolve(tabWithPane(pane))
-	if want := "dashboard › nvim › auth.provider.ts"; got.Name != want {
+	if want := "nvim › auth.provider.ts › dashboard"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 }
@@ -44,7 +44,7 @@ func TestAKindWithNothingToAddStandsAlone(t *testing.T) {
 	}
 
 	got := defaultChain().Resolve(tabWithPane(pane))
-	if want := "dashboard › nvim"; got.Name != want {
+	if want := "nvim › dashboard"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 }
@@ -55,7 +55,7 @@ func TestAKindWithNoTitleAtAllStillNamesThePane(t *testing.T) {
 	pane := &state.PaneState{Dir: dashboard, Processes: running("htop")}
 
 	got := defaultChain().Resolve(tabWithPane(pane))
-	if want := "dashboard › htop"; got.Name != want {
+	if want := "htop › dashboard"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 
@@ -146,7 +146,7 @@ func TestAProjectNeverTakesAColon(t *testing.T) {
 	}
 
 	got := defaultChain().Resolve(tabWithPane(pane))
-	if want := "self-care-portal › yarn dev"; got.Name != want {
+	if want := "yarn dev › self-care-portal"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 }
@@ -169,7 +169,7 @@ func TestAnAgentIsItsOwnKind(t *testing.T) {
 	}
 
 	got := defaultChain().Resolve(tabWithPane(pane))
-	if want := "dashboard › claude › Git email configuration"; got.Name != want {
+	if want := "Git email configuration › claude › dashboard"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 }
@@ -186,7 +186,7 @@ func TestAStartingAgentIsNamedByItsKindAlone(t *testing.T) {
 	}
 
 	got := defaultChain().Resolve(tabWithPane(pane))
-	if want := "dashboard › claude"; got.Name != want {
+	if want := "claude › dashboard"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 }

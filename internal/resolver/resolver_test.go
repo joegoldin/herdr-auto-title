@@ -159,8 +159,8 @@ func TestHigherPrioritySourceSuppliesActivity(t *testing.T) {
 	)
 
 	got := r.Resolve(tabWithCWD(dashboard))
-	if got.Name != "dashboard › Tests" {
-		t.Errorf("name = %q, want %q", got.Name, "dashboard › Tests")
+	if got.Name != "Tests › dashboard" {
+		t.Errorf("name = %q, want %q", got.Name, "Tests › dashboard")
 	}
 
 	if got.Reason != "test_source" || got.Confidence != ConfidenceProcess {
@@ -187,8 +187,8 @@ func TestHigherPrioritySourceOverridesContext(t *testing.T) {
 	)
 
 	got := r.Resolve(tabWithCWD(dashboard))
-	if got.Name != "prod-01 › SSH" {
-		t.Errorf("name = %q, want %q", got.Name, "prod-01 › SSH")
+	if got.Name != "SSH › prod-01" {
+		t.Errorf("name = %q, want %q", got.Name, "SSH › prod-01")
 	}
 }
 
@@ -249,7 +249,7 @@ func TestADifferentWorkspaceIsNotDropped(t *testing.T) {
 	tab.WorkspaceName = "api"
 
 	got := defaultChain().Resolve(tab)
-	if want := "dashboard › Fix OAuth redirect"; got.Name != want {
+	if want := "Fix OAuth redirect › dashboard"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 }
@@ -267,7 +267,7 @@ func TestAWorkspaceLabelIsMatchedWholeAgainstTheContext(t *testing.T) {
 		{
 			label: "group › dashboard",
 			pane:  &state.PaneState{Dir: dashboard, TerminalTitle: "auth.ts"},
-			want:  "dashboard › auth.ts",
+			want:  "auth.ts › dashboard",
 		},
 		{
 			label: "release",
@@ -276,12 +276,12 @@ func TestAWorkspaceLabelIsMatchedWholeAgainstTheContext(t *testing.T) {
 				Git:           git.Checkout{Branch: "release", Default: "main"},
 				TerminalTitle: "Fix OAuth redirect",
 			},
-			want: "api › release › Fix OAuth redirect",
+			want: "Fix OAuth redirect › api › release",
 		},
 		{
 			label: "claude › Fix totals",
 			pane:  &state.PaneState{Dir: api, Agent: "claude", AgentTitle: "Fix totals"},
-			want:  "api › claude › Fix totals",
+			want:  "Fix totals › claude › api",
 		},
 	} {
 		t.Run(test.label, func(t *testing.T) {
@@ -307,7 +307,7 @@ func TestAWorkspaceWithoutAName(t *testing.T) {
 	})
 
 	got := defaultChain().Resolve(tab)
-	if want := "dashboard › Fix OAuth redirect"; got.Name != want {
+	if want := "Fix OAuth redirect › dashboard"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 }
@@ -453,7 +453,7 @@ func TestAPaneKeepsItsActivityAndDropsTheSharedContext(t *testing.T) {
 	}
 	tab := tabOf([]*state.PaneState{pane})
 
-	if got := chain.Resolve(tab).Name; got != "dashboard › rewriting the pane label rules" {
+	if got := chain.Resolve(tab).Name; got != "rewriting the pane label rules › dashboard" {
 		t.Fatalf("tab = %q, want where and what", got)
 	}
 

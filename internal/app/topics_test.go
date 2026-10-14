@@ -142,7 +142,7 @@ func TestATopicIsReportedWhateverTheLabel(t *testing.T) {
 			pane: herdr.PaneInfo{
 				Agent: "claude", TerminalTitleStripped: "Tokyo dev workspace thread",
 			},
-			want: "claude › Tokyo dev workspace thread",
+			want: "Tokyo dev workspace thread › claude",
 		},
 		{
 			label: "KK - Improvement project",

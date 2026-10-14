@@ -81,6 +81,9 @@ linters:
           # Herdr needs Go 1.24 and builds the plugin at install time, so a
           # third-party import has to be a decision rather than an accident.
           list-mode: strict
+          files:
+            - $all
+            - "!**/internal/jj/*.go"
           allow:
             - $gostd
             - github.com/kryptamine/herdr-auto-title
@@ -89,6 +92,15 @@ linters:
           deny:
             - pkg: os/exec
               desc: renames go over the socket API, never through a shell
+        # The one command the fork runs: jj-starship, for a jj repository's
+        # label. Renames still go over the socket API.
+        jj:
+          list-mode: strict
+          files:
+            - "**/internal/jj/*.go"
+          allow:
+            - $gostd
+            - github.com/kryptamine/herdr-auto-title
     errcheck:
       # A connection that already answered has nothing left to report on close.
       # A file is not listed: closing one that was written can report the write.

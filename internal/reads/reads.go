@@ -6,10 +6,12 @@ package reads
 import (
 	"context"
 	"log/slog"
+	"path/filepath"
 
 	"github.com/kryptamine/herdr-auto-title/internal/claude"
 	"github.com/kryptamine/herdr-auto-title/internal/git"
 	"github.com/kryptamine/herdr-auto-title/internal/herdr"
+	"github.com/kryptamine/herdr-auto-title/internal/jj"
 	"github.com/kryptamine/herdr-auto-title/internal/state"
 )
 
@@ -28,6 +30,7 @@ type Options struct {
 type Reader struct {
 	processes       *processCache
 	topics          *claude.Reader
+	jj              *jj.Reader
 	log             *slog.Logger
 	readBranches    bool
 	readTranscripts bool
@@ -37,6 +40,7 @@ func New(opts Options, log *slog.Logger) *Reader {
 	return &Reader{
 		processes:       newProcessCache(),
 		topics:          claude.NewReader(opts.ClaudeDirs...),
+		jj:              jj.New(log),
 		log:             log,
 		readBranches:    opts.BranchMax > 0,
 		readTranscripts: opts.ReadTranscripts,
@@ -149,9 +153,30 @@ func (p *Poll) checkout(ctx context.Context, dir string) git.Checkout {
 	}
 
 	checkout := git.Read(dir)
+	if root, ok := jj.Root(dir); ok {
+		checkout = p.reader.jjCheckout(ctx, checkout, root)
+	}
+
 	p.checkouts[dir] = checkout
 
 	return checkout
+}
+
+// jjCheckout names a jj workspace's checkout by its jj label rather than the
+// detached HEAD git reports for it. A repository with no git of its own is
+// told apart from others by its .jj directory instead of git's common dir.
+func (r *Reader) jjCheckout(ctx context.Context, checkout git.Checkout, root string) git.Checkout {
+	label := r.jj.Label(ctx, root)
+	if label == "" {
+		return checkout
+	}
+
+	commonDir := checkout.CommonDir
+	if commonDir == "" {
+		commonDir = filepath.Join(root, ".jj")
+	}
+
+	return git.Checkout{JJ: label, Default: checkout.Default, CommonDir: commonDir}
 }
 
 // topic reports what the session the pane's agent is holding says it is about,

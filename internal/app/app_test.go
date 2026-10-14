@@ -185,7 +185,7 @@ func TestATabAppearingLaterIsNamed(t *testing.T) {
 	h.poll()
 
 	renames := h.client.Renames()
-	if want := "dashboard › Fix OAuth redirect"; renames[0].Label != want {
+	if want := "Fix OAuth redirect › dashboard"; renames[0].Label != want {
 		t.Errorf("rename = %q, want %q", renames[0].Label, want)
 	}
 }
@@ -710,7 +710,7 @@ func TestAgentContextNamesTheTab(t *testing.T) {
 	h.poll()
 
 	got := h.client.Renames()[0].Label
-	if want := "dashboard › claude › Implement OAuth scopes"; got != want {
+	if want := "Implement OAuth scopes › claude › dashboard"; got != want {
 		t.Errorf("rename = %q, want %q", got, want)
 	}
 }
@@ -742,7 +742,7 @@ func TestAnAgentPaneIsNamedAfterTheAgentsOwnDirectory(t *testing.T) {
 	)
 	h.poll()
 
-	want := "self-care-portal › claude › Implement OAuth scopes"
+	want := "Implement OAuth scopes › claude › self-care-portal"
 	if got := h.client.Renames()[0].Label; got != want {
 		t.Errorf("rename = %q, want %q", got, want)
 	}
@@ -768,7 +768,7 @@ func TestAPreferredAgentPaneIsTheOneRead(t *testing.T) {
 	h := startConfigured(t, client, cfg)
 	h.poll()
 
-	if got := h.client.Renames(); len(got) != 1 || got[0].Label != "billing › claude" {
+	if got := h.client.Renames(); len(got) != 1 || got[0].Label != "claude › billing" {
 		t.Errorf("renames = %v, want the agent pane's read directory", got)
 	}
 }
@@ -1085,8 +1085,8 @@ func TestAPaneThatMovedIsAskedAboutAgain(t *testing.T) {
 	})
 	h.poll()
 
-	if got := h.client.Renames()[1].Label; got != "dashboard › nvim" {
-		t.Errorf("rename = %q, want %q", got, "dashboard › nvim")
+	if got := h.client.Renames()[1].Label; got != "nvim › dashboard" {
+		t.Errorf("rename = %q, want %q", got, "nvim › dashboard")
 	}
 }
 
@@ -1114,8 +1114,8 @@ func TestAPaneThatCannotBeReadIsAskedAgain(t *testing.T) {
 	h.client.SetProcessError(nil)
 	h.poll()
 
-	if got := h.client.Renames()[1].Label; got != "dashboard › nvim" {
-		t.Errorf("rename = %q, want %q", got, "dashboard › nvim")
+	if got := h.client.Renames()[1].Label; got != "nvim › dashboard" {
+		t.Errorf("rename = %q, want %q", got, "nvim › dashboard")
 	}
 }
 
@@ -1283,7 +1283,7 @@ func TestATabIsNamedFromTheAgentsOwnSession(t *testing.T) {
 	h.poll()
 
 	got := h.client.Renames()[0].Label
-	if want := "dashboard › claude › Poll loop rework"; got != want {
+	if want := "Poll loop rework › claude › dashboard"; got != want {
 		t.Errorf("rename = %q, want %q", got, want)
 	}
 }
@@ -1305,8 +1305,8 @@ func TestTranscriptsAreLeftUnreadWhenTurnedOff(t *testing.T) {
 	), cfg)
 	h.poll()
 
-	if got := h.client.Renames()[0].Label; got != "dashboard › claude" {
-		t.Errorf("rename = %q, want %q", got, "dashboard › claude")
+	if got := h.client.Renames()[0].Label; got != "claude › dashboard" {
+		t.Errorf("rename = %q, want %q", got, "claude › dashboard")
 	}
 }
 
@@ -1416,7 +1416,7 @@ func TestATabIsNamedAfterTheBranchTheAgentIsWorkingOn(t *testing.T) {
 	h.poll()
 
 	got := h.client.Renames()[0].Label
-	if want := filepath.Base(repo) + " › feat/oauth › claude › Poll loop rework"; got != want {
+	if want := "Poll loop rework › claude › " + filepath.Base(repo) + " › feat/oauth"; got != want {
 		t.Errorf("rename = %q, want %q", got, want)
 	}
 }
@@ -1470,7 +1470,7 @@ func TestAnAgentsBranchIsNamedWhereNoTrunkIsRecorded(t *testing.T) {
 	h.poll()
 
 	got := h.client.Renames()[0].Label
-	if want := filepath.Base(repo) + " › feat/oauth › claude"; got != want {
+	if want := "claude › " + filepath.Base(repo) + " › feat/oauth"; got != want {
 		t.Errorf("rename = %q, want %q", got, want)
 	}
 }
@@ -1495,7 +1495,7 @@ func TestAnAgentOnATrunkNobodyRecordedLeavesThePanesBranch(t *testing.T) {
 	h.poll()
 
 	got := h.client.Renames()[0].Label
-	if want := "wt › feat/oauth › claude"; got != want {
+	if want := "claude › wt › feat/oauth"; got != want {
 		t.Errorf("rename = %q, want %q", got, want)
 	}
 }
@@ -1525,7 +1525,7 @@ func TestALongTopicAndAWorktreeBranchFitTheDefaultBounds(t *testing.T) {
 	h.poll()
 
 	got := h.client.Renames()[0].Label
-	want := filepath.Base(repo) + " › feat/oauth › claude › Make the branch follow"
+	want := "Make the branch follow the agent worktree › claude"
 
 	if got != want {
 		t.Errorf("rename = %q, want %q", got, want)
@@ -1550,7 +1550,7 @@ func TestAHumanPaneOnAWorktreeStillSaysItsBranchOnce(t *testing.T) {
 	)
 	h.poll()
 
-	if got := h.client.Renames()[0].Label; got != "oauth › Fix OAuth redirect" {
+	if got := h.client.Renames()[0].Label; got != "Fix OAuth redirect › oauth" {
 		t.Errorf("rename = %q, want the branch its directory already says dropped", got)
 	}
 }
@@ -1576,7 +1576,7 @@ func TestAnAgentsWorktreeBranchStandsBesideTheProject(t *testing.T) {
 	h.poll()
 
 	got := h.client.Renames()[0].Label
-	if want := filepath.Base(repo) + " › oauth › claude"; got != want {
+	if want := "claude › " + filepath.Base(repo) + " › oauth"; got != want {
 		t.Errorf("rename = %q, want %q", got, want)
 	}
 }
@@ -1604,7 +1604,7 @@ func TestAPaneHoldingSeveralRepositoriesFollowsItsAgentsWorktree(t *testing.T) {
 	h.poll()
 
 	got := h.client.Renames()[0].Label
-	if want := filepath.Base(parent) + " › NODE-24 › claude"; got != want {
+	if want := "claude › " + filepath.Base(parent) + " › NODE-24"; got != want {
 		t.Errorf("rename = %q, want %q", got, want)
 	}
 }

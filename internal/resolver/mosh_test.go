@@ -98,7 +98,7 @@ func TestTheMoshTitlePrefixIsNotRepeated(t *testing.T) {
 	pane.TerminalTitle = "[mosh] user@devbox (192.0.2.10) - byobu"
 
 	got := defaultChain().Resolve(tabWithPane(pane))
-	if want := "mosh › devbox › user@devbox (192.0.2.10) - byobu"; got.Name != want {
+	if want := "user@devbox (192.0.2.10) - byobu › mosh › devbox"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 }
@@ -156,7 +156,7 @@ func TestAMoshSessionsHostLeadsTheTopic(t *testing.T) {
 	pane := moshPane("devbox")
 	pane.TerminalTitle = "[mosh] Restart the queue workers"
 
-	if got, want := topics().Topic(pane), "mosh › devbox › Restart the queue workers"; got != want {
+	if got, want := topics().Topic(pane), "Restart the queue workers › mosh › devbox"; got != want {
 		t.Errorf("topic = %q, want %q", got, want)
 	}
 }
@@ -167,7 +167,7 @@ func TestTheMoshTitlePrefixIsKeptWithoutMosh(t *testing.T) {
 	// Only mosh-client's own prefix is noise; a local title is left as it is.
 	pane := &state.PaneState{Dir: dashboard, TerminalTitle: "[mosh] notes"}
 
-	if got := defaultChain().Resolve(tabWithPane(pane)); !strings.HasSuffix(
+	if got := defaultChain().Resolve(tabWithPane(pane)); !strings.HasPrefix(
 		got.Name,
 		"[mosh] notes",
 	) {

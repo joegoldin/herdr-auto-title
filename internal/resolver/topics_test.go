@@ -20,7 +20,7 @@ func TestTheTopicIsWhatTheAgentIsDoing(t *testing.T) {
 
 	pane := &state.PaneState{Dir: api, Agent: "claude", AgentTitle: "Fix login"}
 
-	if got, want := topics().Topic(pane), "claude › Fix login"; got != want {
+	if got, want := topics().Topic(pane), "Fix login › claude"; got != want {
 		t.Errorf("topic = %q, want %q", got, want)
 	}
 
@@ -94,9 +94,9 @@ func TestATopicIsBoundOnlyWhenABoundIsSet(t *testing.T) {
 		maxLen int
 		want   string
 	}{
-		{maxLen: 0, want: "claude › " + activity},
-		{maxLen: 20, want: "claude › Reconcile t"},
-		{maxLen: 8, want: "claude"},
+		{maxLen: 0, want: activity + " › claude"},
+		{maxLen: 20, want: "Reconcile the ledger"},
+		{maxLen: 8, want: "Reconcil"},
 	} {
 		bounded := NewTopics(Options{BranchMax: DefaultBranchMaxLength}, test.maxLen)
 		if got := bounded.Topic(pane); got != test.want {
@@ -235,7 +235,7 @@ func TestATabStillCarriesTheForegroundProcessThroughTheTerminalTitle(t *testing.
 	}
 
 	got := defaultChain().Resolve(tabWithPane(pane))
-	if want := "dashboard › nvim › auth.ts"; got.Name != want {
+	if want := "nvim › auth.ts › dashboard"; got.Name != want {
 		t.Errorf("name = %q, want %q", got.Name, want)
 	}
 }
