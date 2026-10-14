@@ -167,7 +167,7 @@ func (p *Poll) checkout(ctx context.Context, dir string) git.Checkout {
 // told apart from others by its .jj directory instead of git's common dir.
 func (r *Reader) jjCheckout(ctx context.Context, checkout git.Checkout, root string) git.Checkout {
 	label := r.jj.Label(ctx, root)
-	if label == "" {
+	if label.Name == "" {
 		return checkout
 	}
 
@@ -176,7 +176,12 @@ func (r *Reader) jjCheckout(ctx context.Context, checkout git.Checkout, root str
 		commonDir = filepath.Join(root, ".jj")
 	}
 
-	return git.Checkout{JJ: label, Default: checkout.Default, CommonDir: commonDir}
+	return git.Checkout{
+		JJ:        label.Name,
+		JJStatus:  label.Status,
+		Default:   checkout.Default,
+		CommonDir: commonDir,
+	}
 }
 
 // topic reports what the session the pane's agent is holding says it is about,

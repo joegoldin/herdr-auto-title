@@ -15,21 +15,32 @@ func TestParse(t *testing.T) {
 	tests := []struct {
 		name string
 		out  string
-		want string
+		want Label
 	}{
-		{"a bookmark on the working copy", "lsmuummm (demo)\n", "demo"},
-		{"a bookmark behind the working copy keeps its distance", "ymznnlvz (demo~2)\n", "demo~2"},
+		{"a bookmark on the working copy", "lsmuummm (demo)\n", Label{Name: "demo"}},
+		{
+			"a bookmark behind the working copy keeps its distance",
+			"ymznnlvz (demo~2)\n",
+			Label{Name: "demo~2"},
+		},
 		{
 			"the nearest of several bookmarks is named",
 			"ymznnlvz (other~1, third~1, demo~2)\n",
-			"other~1",
+			Label{Name: "other~1"},
 		},
-		{"no bookmark names the change", "xkurvtuq\n", "xkurvtuq"},
-		{"empty parentheses fall back to the change", "xkurvtuq ()", "xkurvtuq"},
-		{"nothing printed names nothing", "", ""},
-		{"an unclosed list is not trusted", "xkurvtuq (main~1", ""},
-		{"more than one line is not a label", "xkurvtuq\nerror: something", ""},
-		{"a sentence is not a change id", "There is no jj repo", ""},
+		{"no bookmark names the change", "xkurvtuq\n", Label{Name: "xkurvtuq"}},
+		{"status is kept apart", "nqspvrlm (main~2) [∅]\n", Label{Name: "main~2", Status: "∅"}},
+		{
+			"several markers stay together",
+			"nqspvrlm (main) [!⇡]",
+			Label{Name: "main", Status: "!⇡"},
+		},
+		{"status without a bookmark", "yzxv1234 [∅]", Label{Name: "yzxv1234", Status: "∅"}},
+		{"empty parentheses fall back to the change", "xkurvtuq ()", Label{Name: "xkurvtuq"}},
+		{"nothing printed names nothing", "", Label{}},
+		{"an unclosed list is not trusted", "xkurvtuq (main~1", Label{}},
+		{"more than one line is not a label", "xkurvtuq\nerror: something", Label{}},
+		{"a sentence is not a change id", "There is no jj repo", Label{}},
 	}
 
 	for _, test := range tests {
@@ -37,7 +48,7 @@ func TestParse(t *testing.T) {
 			t.Parallel()
 
 			if got := Parse(test.out); got != test.want {
-				t.Errorf("Parse(%q) = %q, want %q", test.out, got, test.want)
+				t.Errorf("Parse(%q) = %+v, want %+v", test.out, got, test.want)
 			}
 		})
 	}
@@ -93,8 +104,8 @@ func TestALabelIsReadAgainOnlyAfterAnOperation(t *testing.T) {
 	reader := NewWithRunner(run)
 
 	for range 3 {
-		if got := reader.Label(t.Context(), root); got != "main~1" {
-			t.Fatalf("Label = %q, want main~1", got)
+		if got := reader.Label(t.Context(), root); got.Name != "main~1" {
+			t.Fatalf("Label = %+v, want main~1", got)
 		}
 	}
 
@@ -118,8 +129,8 @@ func TestAFailedRunIsNotRemembered(t *testing.T) {
 	reader := NewWithRunner(run)
 
 	for range 2 {
-		if got := reader.Label(t.Context(), root); got != "" {
-			t.Fatalf("Label = %q, want nothing", got)
+		if got := reader.Label(t.Context(), root); got != (Label{}) {
+			t.Fatalf("Label = %+v, want nothing", got)
 		}
 	}
 
@@ -146,8 +157,8 @@ func TestARunIsBoundedByATimeout(t *testing.T) {
 func TestNoRunnerLabelsNothing(t *testing.T) {
 	t.Parallel()
 
-	if got := NewWithRunner(nil).Label(t.Context(), workspace(t)); got != "" {
-		t.Errorf("Label = %q, want nothing without jj-starship", got)
+	if got := NewWithRunner(nil).Label(t.Context(), workspace(t)); got != (Label{}) {
+		t.Errorf("Label = %+v, want nothing without jj-starship", got)
 	}
 }
 
@@ -155,8 +166,8 @@ func TestADirectoryWithoutARepositoryIsNotRun(t *testing.T) {
 	t.Parallel()
 
 	run, calls := counting("xkurvtuq", nil)
-	if got := NewWithRunner(run).Label(t.Context(), t.TempDir()); got != "" || *calls != 0 {
-		t.Errorf("Label = %q after %d runs, want nothing and no run", got, *calls)
+	if got := NewWithRunner(run).Label(t.Context(), t.TempDir()); got != (Label{}) || *calls != 0 {
+		t.Errorf("Label = %+v after %d runs, want nothing and no run", got, *calls)
 	}
 }
 
@@ -188,8 +199,8 @@ func TestASecondWorkspaceReadsTheSharedOperationLog(t *testing.T) {
 	}
 
 	run, _ := counting("ymznnlvz (demo~2)", nil)
-	if got := NewWithRunner(run).Label(t.Context(), second); got != "demo~2" {
-		t.Errorf("Label = %q, want demo~2 through the shared repository", got)
+	if got := NewWithRunner(run).Label(t.Context(), second); got.Name != "demo~2" {
+		t.Errorf("Label = %+v, want demo~2 through the shared repository", got)
 	}
 }
 

@@ -1,6 +1,7 @@
 // Package jj names what a jj repository is working on the way the shell
 // prompt does: the nearest bookmark and how far behind it the working copy is
-// (`main~1`), or the change id when no bookmark is near. A colocated
+// (`main~1`), or the change id when no bookmark is near, with the prompt's
+// status markers beside it. A colocated
 // repository's git HEAD is always detached, so git alone can only offer a
 // hash that changes with every new change.
 //
@@ -41,10 +42,18 @@ type Reader struct {
 	cache map[string]entry
 }
 
+// Label is what a workspace is working on and the state it is in.
+type Label struct {
+	// Name is `bookmark`, `bookmark~N` or a change id.
+	Name string
+	// Status is jj-starship's markers, such as `∅` or `!⇡`, or "" for none.
+	Status string
+}
+
 // entry is a label and the operation-heads stamp it was read at.
 type entry struct {
 	stamp time.Time
-	label string
+	label Label
 }
 
 // New builds a reader that runs jj-starship from PATH. With no jj-starship to
@@ -63,7 +72,7 @@ func New(log *slog.Logger) *Reader {
 		// flag.
 		//nolint:forbidigo,gosec // a fixed binary and an absolute path, no shell
 		out, err := exec.CommandContext(ctx, path, "--cwd", root,
-			"--no-color", "--no-symbol", "--no-jj-prefix", "--no-jj-status").Output()
+			"--no-color", "--no-symbol", "--no-jj-prefix").Output()
 
 		return string(out), err
 	})
@@ -97,17 +106,17 @@ func Root(dir string) (string, bool) {
 
 // Label reports what the workspace rooted at root is working on: `bookmark` or
 // `bookmark~N` when a bookmark is on the working copy or near behind it, the
-// change id otherwise, and "" when jj-starship cannot say.
-func (r *Reader) Label(ctx context.Context, root string) string {
+// change id otherwise, and the zero Label when jj-starship cannot say.
+func (r *Reader) Label(ctx context.Context, root string) Label {
 	if r.run == nil {
-		return ""
+		return Label{}
 	}
 
 	// No stamp means no repository to read the operation log of; a label
 	// would be read again on every poll, so there is none.
 	stamp, ok := opStamp(root)
 	if !ok {
-		return ""
+		return Label{}
 	}
 
 	r.mu.Lock()
@@ -124,7 +133,7 @@ func (r *Reader) Label(ctx context.Context, root string) string {
 	out, err := r.run(ctx, root)
 	if err != nil {
 		// Not remembered: a timeout or a failed run may not happen again.
-		return ""
+		return Label{}
 	}
 
 	label := Parse(out)
@@ -136,35 +145,40 @@ func (r *Reader) Label(ctx context.Context, root string) string {
 	return label
 }
 
-// Parse reduces jj-starship's output, `<change id>` or
-// `<change id> (<bookmark>[~N][, …])`, to the first bookmark when there is one
-// and the change id otherwise.
-func Parse(out string) string {
+// Parse reduces jj-starship's output, `<change id>[ (<bookmark>[~N][, …])][
+// [<status>]]`, to the first bookmark when there is one and the change id
+// otherwise, with the status markers apart.
+func Parse(out string) Label {
 	out = strings.TrimSpace(out)
 	if out == "" || strings.ContainsAny(out, "\n\r") {
-		return ""
+		return Label{}
+	}
+
+	var status string
+	if open := strings.LastIndex(out, " ["); open >= 0 && strings.HasSuffix(out, "]") {
+		out, status = out[:open], out[open+2:len(out)-1]
 	}
 
 	id, rest, hasBookmarks := strings.Cut(out, " (")
 	if !hasBookmarks {
-		if strings.ContainsAny(id, " ()") {
-			return ""
+		if strings.ContainsAny(id, " ()[]") {
+			return Label{}
 		}
 
-		return id
+		return Label{Name: id, Status: status}
 	}
 
 	bookmarks, closed := strings.CutSuffix(rest, ")")
 	if !closed {
-		return ""
+		return Label{}
 	}
 
 	first, _, _ := strings.Cut(bookmarks, ",")
 	if first = strings.TrimSpace(first); first == "" {
-		return id
+		return Label{Name: id, Status: status}
 	}
 
-	return first
+	return Label{Name: first, Status: status}
 }
 
 // opStamp reads when the repository's operation heads last changed, which

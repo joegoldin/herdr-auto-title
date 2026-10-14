@@ -46,6 +46,9 @@ type Checkout struct {
 	// set by internal/reads in place of Branch and Commit: a colocated
 	// repository's HEAD is always detached, so they name nothing that lasts.
 	JJ string
+	// JJStatus is the prompt's status markers for that workspace, such as `∅`
+	// for a described-less change with edits; only the sidebar shows them.
+	JJStatus string
 	// CommonDir is where the repository keeps the refs its worktrees share. It
 	// is the same directory for a repository and every worktree of it, so two
 	// checkouts belong together exactly when it matches.

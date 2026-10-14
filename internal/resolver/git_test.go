@@ -372,6 +372,11 @@ func TestVCSNamesTheCheckoutTrunkAndAll(t *testing.T) {
 		want string
 	}{
 		{"a jj label wins", jjPane("main~1"), "main~1"},
+		{
+			"jj status markers follow the label",
+			&state.PaneState{Dir: dashboard, Git: git.Checkout{JJ: "main~1", JJStatus: "∅"}},
+			"main~1 ∅",
+		},
 		{"the trunk is named", repoPane("main", "main"), "main"},
 		{
 			"a long branch is not shortened",

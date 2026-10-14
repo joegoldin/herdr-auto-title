@@ -24,7 +24,7 @@ releases merge without rewriting imports.
   shown, since the distance is what it says. A long bookmark is shortened like
   a branch, keeping its `~N` whole.
 - **New package `internal/jj`.** Runs `jj-starship` (`--cwd <root>
-  --no-color --no-symbol --no-jj-prefix --no-jj-status`), the first command
+  --no-color --no-symbol --no-jj-prefix`), the first command
   this plugin runs: jj keeps its state in a store upstream's file-reading
   approach does not cover. A label is cached per workspace until the
   repository's `op_heads` changes, so a poll costs one `stat` per repository
@@ -33,7 +33,9 @@ releases merge without rewriting imports.
 - **`git.Checkout.JJ`.** The field carrying that label; `internal/reads` fills
   it in place of `Branch` and `Commit`.
 - **`vcs` workspace token.** Reported beside `topic` for each workspace's
-  active tab: the jj label, else the git branch (trunk included, not
+  active tab: the jj label with jj-starship's status markers (`main~1 ∅`; `!`
+  conflict, `∅` edits without a description, `⇔` divergent, `⇡` unpushed),
+  else the git branch (trunk included, not
   shortened), else a detached commit. It stands in for Herdr's built-in
   `branch` row token, which reads only git; a sidebar row uses it as `$vcs`.
   `herdr.ReportWorkspaceTopic` became `ReportWorkspaceToken`, taking the
