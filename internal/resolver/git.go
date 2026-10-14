@@ -76,6 +76,35 @@ func (g Git) Resolve(pane *state.PaneState) (Parts, bool) {
 	return Parts{Branch: branch}, true
 }
 
+// VCS names what a pane's repository has checked out, for the workspace's
+// `vcs` token: the jj label, else the branch, else a detached commit. Unlike a
+// title it names the trunk and is not shortened, since it stands in for
+// Herdr's own `$branch` on a sidebar row of its own. A remote pane names
+// nothing, as in a title.
+func VCS(pane *state.PaneState) string {
+	if pane == nil {
+		return ""
+	}
+
+	if _, _, remote := remoteOf(pane); remote {
+		return ""
+	}
+
+	checkout := pane.Git
+	if checkout == (git.Checkout{}) && belongsToPane(pane) {
+		checkout = pane.AgentGit
+	}
+
+	switch {
+	case checkout.JJ != "":
+		return Sanitize(checkout.JJ, 0)
+	case checkout.Branch != "":
+		return Sanitize(checkout.Branch, 0)
+	default:
+		return Sanitize(checkout.Commit, 0)
+	}
+}
+
 // label reduces a checkout to what a tab says about it, or "" when it says
 // nothing worth the width.
 func (g Git) label(checkout git.Checkout) string {

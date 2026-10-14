@@ -48,9 +48,12 @@ type App struct {
 	// user turned that off.
 	topics   *resolver.Topics
 	reported *topicReports
-	changes  *state.Changes
-	labels   *labels.Labels
-	reads    *reads.Reader
+	// reportedVCS stands in for Herdr's `$branch`, which jj repositories leave
+	// empty; it is reported alongside the topic, and off when topics are.
+	reportedVCS *topicReports
+	changes     *state.Changes
+	labels      *labels.Labels
+	reads       *reads.Reader
 	// failures is the run of polls that have failed in a row, which decides
 	// how loudly the next one is reported.
 	failures failureLog
@@ -78,7 +81,8 @@ func New(
 		titles:      titles,
 		panes:       panes,
 		topics:      topics,
-		reported:    newTopicReports(),
+		reported:    newTopicReports(herdr.TopicToken),
+		reportedVCS: newTopicReports(herdr.VCSToken),
 		preferAgent: cfg.PreferAgentPane,
 		changes:     state.NewChanges(),
 		labels:      labels.Load(cfg.ManualPath, log),
@@ -289,6 +293,7 @@ func (a *App) reportTopics(
 	}
 
 	a.reported.observe(snapshot.Workspaces)
+	a.reportedVCS.observe(snapshot.Workspaces)
 
 	for _, workspace := range snapshot.Workspaces {
 		if ctx.Err() != nil {
@@ -311,57 +316,44 @@ func (a *App) reportTopics(
 
 		topic := a.topics.Topic(pane)
 		if a.reported.due(workspace, topic) {
-			a.report(ctx, client, workspace.WorkspaceID, topic)
+			a.report(ctx, client, a.reported, workspace.WorkspaceID, topic)
+		}
+
+		vcs := resolver.VCS(pane)
+		if a.reportedVCS.due(workspace, vcs) {
+			a.report(ctx, client, a.reportedVCS, workspace.WorkspaceID, vcs)
 		}
 	}
 }
 
-// report sends one workspace's topic, or clears it when topic is empty.
-func (a *App) report(ctx context.Context, client herdr.Client, id, topic string) {
-	err := herdr.ReportWorkspaceTopic(ctx, client, id, topicSource, topic, topicTTL)
+// report sends one workspace's token, or clears it when value is empty.
+func (a *App) report(
+	ctx context.Context,
+	client herdr.Client,
+	reports *topicReports,
+	id, value string,
+) {
+	err := herdr.ReportWorkspaceToken(ctx, client, id, topicSource, reports.token, value, topicTTL)
+	log := a.log.With("workspace_id", id, "token", reports.token, "value", value)
 
 	switch {
 	case err == nil:
-		a.reported.sent(id, topic)
-		a.log.Debug("workspace topic reported", "workspace_id", id, "topic", topic)
+		reports.sent(id, value)
+		log.Debug("workspace token reported")
 	case herdr.ErrorCode(err) == herdr.CodeWorkspaceNotFound:
-		a.reported.forget(id)
-		a.log.Debug("workspace closed before its topic could be reported", "workspace_id", id)
+		reports.forget(id)
+		log.Debug("workspace closed before its token could be reported")
 	case errors.Is(err, herdr.ErrUnanswered):
 		// Herdr may still apply it, and the next refresh repairs one that lands
 		// after a newer topic: docs/architecture/poll-loop.md.
-		a.reported.sent(id, topic)
-		a.log.Warn(
-			"workspace topic report failed",
-			"workspace_id",
-			id,
-			"topic",
-			topic,
-			"error",
-			err,
-		)
+		reports.sent(id, value)
+		log.Warn("workspace token report failed", "error", err)
 	case herdr.ErrorCode(err) != "":
 		// Herdr refuses the same value the same way every time.
-		a.reported.rejected(id, topic)
-		a.log.Warn(
-			"herdr refused a workspace topic",
-			"workspace_id",
-			id,
-			"topic",
-			topic,
-			"error",
-			err,
-		)
+		reports.rejected(id, value)
+		log.Warn("herdr refused a workspace token", "error", err)
 	default:
-		a.log.Warn(
-			"workspace topic report failed",
-			"workspace_id",
-			id,
-			"topic",
-			topic,
-			"error",
-			err,
-		)
+		log.Warn("workspace token report failed", "error", err)
 	}
 }
 

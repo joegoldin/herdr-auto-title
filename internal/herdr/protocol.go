@@ -104,6 +104,11 @@ type NotificationResult struct {
 // draws where the user's layout says `$topic`.
 const TopicToken = "topic"
 
+// VCSToken is what the workspace's active tab has checked out: a jj label
+// (`main~1`, or a change id) or a git branch. It stands in for Herdr's own
+// `$branch`, which reads only git and so shows nothing in a jj repository.
+const VCSToken = "vcs"
+
 // WorkspaceMetadataParams reports display tokens on a workspace. A nil value
 // clears its token, which is why the map holds pointers: leaving a key out
 // changes nothing.

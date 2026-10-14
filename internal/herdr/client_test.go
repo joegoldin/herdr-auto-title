@@ -325,20 +325,21 @@ func TestRenameTabSendsTabAndLabel(t *testing.T) {
 	}
 }
 
-func TestReportWorkspaceTopicSendsTheTokenAndItsLifetime(t *testing.T) {
+func TestReportWorkspaceTokenSendsTheTokenAndItsLifetime(t *testing.T) {
 	t.Parallel()
 
 	srv := newTestServer(t, respondOK)
 
-	if err := ReportWorkspaceTopic(
+	if err := ReportWorkspaceToken(
 		context.Background(),
 		srv.client(),
 		"wE",
 		"herdr.auto-title",
+		TopicToken,
 		"Fix login",
 		time.Minute,
 	); err != nil {
-		t.Fatalf("ReportWorkspaceTopic: %v", err)
+		t.Fatalf("ReportWorkspaceToken: %v", err)
 	}
 
 	seen := srv.seen()
@@ -352,22 +353,23 @@ func TestReportWorkspaceTopicSendsTheTokenAndItsLifetime(t *testing.T) {
 	}
 }
 
-func TestReportWorkspaceTopicClearsWithANull(t *testing.T) {
+func TestReportWorkspaceTokenClearsWithANull(t *testing.T) {
 	t.Parallel()
 
 	// Herdr clears a token only when its value is null; leaving the key out
 	// changes nothing, so an empty topic must reach the wire as a null.
 	srv := newTestServer(t, respondOK)
 
-	if err := ReportWorkspaceTopic(
+	if err := ReportWorkspaceToken(
 		context.Background(),
 		srv.client(),
 		"wE",
 		"herdr.auto-title",
+		TopicToken,
 		"",
 		time.Minute,
 	); err != nil {
-		t.Fatalf("ReportWorkspaceTopic: %v", err)
+		t.Fatalf("ReportWorkspaceToken: %v", err)
 	}
 
 	seen := srv.seen()

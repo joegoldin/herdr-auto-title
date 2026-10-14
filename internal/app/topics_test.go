@@ -87,6 +87,11 @@ func topicsSent(t *testing.T, h *harness) []string {
 	topics := []string{}
 
 	for _, report := range h.client.WorkspaceReports() {
+		// The vcs token goes in reports of its own: vcsSent reads those.
+		if _, vcs := report.Tokens[herdr.VCSToken]; vcs && len(report.Tokens) == 1 {
+			continue
+		}
+
 		if report.WorkspaceID != theWorkspace || report.Source != topicSource ||
 			report.TTLMs != topicTTL.Milliseconds() || len(report.Tokens) != 1 {
 			t.Errorf("unexpected report: %+v", report)
@@ -492,5 +497,49 @@ func TestATopicAboveAClaimedTabCostsAReadWhilePanesAreNotNamed(t *testing.T) {
 
 	if without != 0 || with == 0 {
 		t.Errorf("reads: %d without topics, %d with; want 0 and >0", without, with)
+	}
+}
+
+// vcsSent is every vcs token reported so far, in order.
+func vcsSent(h *harness) []string {
+	sent := []string{}
+
+	for _, report := range h.client.WorkspaceReports() {
+		value, carried := report.Tokens[herdr.VCSToken]
+		switch {
+		case !carried:
+		case value == nil:
+			sent = append(sent, cleared)
+		default:
+			sent = append(sent, *value)
+		}
+	}
+
+	return sent
+}
+
+// Herdr's own `$branch` reads only git, so the branch is reported as a token
+// of its own, trunk and all, and only when it changes.
+func TestTheActiveTabsBranchIsReportedAsTheVCSToken(t *testing.T) {
+	t.Parallel()
+
+	repo := readstest.Repo(t, "main")
+
+	h := oneTabWorkspace(t, topicConfig(), "dashboard", herdr.PaneInfo{CWD: repo})
+	h.polls(2)
+
+	if got := vcsSent(h); !slices.Equal(got, []string{"main"}) {
+		t.Errorf("vcs sent = %q, want the trunk reported once", got)
+	}
+}
+
+func TestAPaneOutsideARepositoryReportsNoVCSToken(t *testing.T) {
+	t.Parallel()
+
+	h := oneTabWorkspace(t, topicConfig(), "dashboard", herdr.PaneInfo{CWD: t.TempDir()})
+	h.polls(2)
+
+	if got := vcsSent(h); len(got) != 0 {
+		t.Errorf("vcs sent = %q, want nothing outside a repository", got)
 	}
 }

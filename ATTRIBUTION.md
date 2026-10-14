@@ -32,3 +32,9 @@ releases merge without rewriting imports.
   missing `jj-starship` is logged once and leaves jj repositories unlabelled.
 - **`git.Checkout.JJ`.** The field carrying that label; `internal/reads` fills
   it in place of `Branch` and `Commit`.
+- **`vcs` workspace token.** Reported beside `topic` for each workspace's
+  active tab: the jj label, else the git branch (trunk included, not
+  shortened), else a detached commit. It stands in for Herdr's built-in
+  `branch` row token, which reads only git; a sidebar row uses it as `$vcs`.
+  `herdr.ReportWorkspaceTopic` became `ReportWorkspaceToken`, taking the
+  token name.

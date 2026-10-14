@@ -202,24 +202,24 @@ func ShowNotification(
 	return res, err
 }
 
-// ReportWorkspaceTopic shows topic as the workspace's `topic` token until ttl
-// runs out, or clears the token when topic is empty. Herdr draws a token where
-// the user's sidebar rows ask for one and never changes the label for it.
-func ReportWorkspaceTopic(
+// ReportWorkspaceToken shows value as the workspace's token named token until
+// ttl runs out, or clears the token when value is empty. Herdr draws a token
+// where the user's sidebar rows ask for one and never changes the label for it.
+func ReportWorkspaceToken(
 	ctx context.Context,
 	c Client,
-	workspaceID, source, topic string,
+	workspaceID, source, token, value string,
 	ttl time.Duration,
 ) error {
-	var value *string
-	if topic != "" {
-		value = &topic
+	var shown *string
+	if value != "" {
+		shown = &value
 	}
 
 	params := WorkspaceMetadataParams{
 		WorkspaceID: workspaceID,
 		Source:      source,
-		Tokens:      map[string]*string{TopicToken: value},
+		Tokens:      map[string]*string{token: shown},
 		TTLMs:       ttl.Milliseconds(),
 	}
 

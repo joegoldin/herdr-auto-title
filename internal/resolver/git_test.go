@@ -362,3 +362,34 @@ func TestAShortenedJJBookmarkKeepsItsDistance(t *testing.T) {
 		t.Errorf("shortenJJ = %q, want a shortened bookmark before the distance", got)
 	}
 }
+
+func TestVCSNamesTheCheckoutTrunkAndAll(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		pane *state.PaneState
+		want string
+	}{
+		{"a jj label wins", jjPane("main~1"), "main~1"},
+		{"the trunk is named", repoPane("main", "main"), "main"},
+		{
+			"a long branch is not shortened",
+			repoPane("joe/performance-review-scan", "main"),
+			"joe/performance-review-scan",
+		},
+		{
+			"a detached head names its commit",
+			&state.PaneState{Dir: dashboard, Git: git.Checkout{Commit: "0cd6d20"}},
+			"0cd6d20",
+		},
+		{"no repository names nothing", &state.PaneState{Dir: dashboard}, ""},
+		{"no pane names nothing", nil, ""},
+	}
+
+	for _, test := range tests {
+		if got := VCS(test.pane); got != test.want {
+			t.Errorf("%s: VCS = %q, want %q", test.name, got, test.want)
+		}
+	}
+}

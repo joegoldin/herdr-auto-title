@@ -24,6 +24,8 @@ const topicRefresh = 20 * time.Second
 // The snapshot's tokens cannot say it: they merge every source and carry no
 // expiry, and a refresh needs a time only the plugin keeps.
 type topicReports struct {
+	// token is the workspace token these reports carry.
+	token      string
 	workspaces map[string]topicReport
 	now        func() time.Time
 }
@@ -36,8 +38,9 @@ type topicReport struct {
 	rejected bool
 }
 
-func newTopicReports() *topicReports {
+func newTopicReports(token string) *topicReports {
 	return &topicReports{
+		token:      token,
 		workspaces: make(map[string]topicReport),
 		now:        time.Now,
 	}
@@ -64,7 +67,7 @@ func (r *topicReports) due(workspace herdr.WorkspaceInfo, topic string) bool {
 	case !known:
 		// A predecessor's topic outlives it by up to topicTTL, so one showing
 		// is cleared rather than left to expire.
-		return topic != "" || workspace.Tokens[herdr.TopicToken] != ""
+		return topic != "" || workspace.Tokens[r.token] != ""
 	case topic != last.topic:
 		return true
 	case topic == "" || last.rejected:
