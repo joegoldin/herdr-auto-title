@@ -69,6 +69,7 @@ const (
 	MethodTabRename               = "tab.rename"
 	MethodPaneRename              = "pane.rename"
 	MethodWorkspaceReportMetadata = "workspace.report_metadata"
+	MethodPaneReportMetadata      = "pane.report_metadata"
 	MethodNotificationShow        = "notification.show"
 )
 
@@ -108,6 +109,19 @@ const TopicToken = "topic"
 // (`main~1`, or a change id) or a git branch. It stands in for Herdr's own
 // `$branch`, which reads only git and so shows nothing in a jj repository.
 const VCSToken = "vcs"
+
+// TabNumberToken is a pane's tab position, the number in front of its tab's
+// label, for agent rows: Herdr's `tab` token is the whole label.
+const TabNumberToken = "tab_number"
+
+// PaneMetadataParams reports display tokens on a pane, with the same nil-clears
+// rule as WorkspaceMetadataParams.
+type PaneMetadataParams struct {
+	PaneID string             `json:"pane_id"`
+	Source string             `json:"source"`
+	Tokens map[string]*string `json:"tokens"`
+	TTLMs  int64              `json:"ttl_ms"`
+}
 
 // WorkspaceMetadataParams reports display tokens on a workspace. A nil value
 // clears its token, which is why the map holds pointers: leaving a key out

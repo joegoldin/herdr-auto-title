@@ -40,3 +40,8 @@ releases merge without rewriting imports.
   `branch` row token, which reads only git; a sidebar row uses it as `$vcs`.
   `herdr.ReportWorkspaceTopic` became `ReportWorkspaceToken`, taking the
   token name.
+- **`tab_number` pane token.** Each agent pane is given its tab's position
+  (the number in front of the tab's label) as a pane token, so an agent row
+  can show `machine · workspace · 1` and the title on its own line: Herdr's
+  `tab` token is the whole label. Reported with the same refresh bookkeeping
+  as the workspace tokens, through the new `herdr.ReportPaneToken`.

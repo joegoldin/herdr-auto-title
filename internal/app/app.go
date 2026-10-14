@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"strconv"
 	"time"
 
 	"github.com/kryptamine/herdr-auto-title/internal/herdr"
@@ -51,9 +52,12 @@ type App struct {
 	// reportedVCS stands in for Herdr's `$branch`, which jj repositories leave
 	// empty; it is reported alongside the topic, and off when topics are.
 	reportedVCS *topicReports
-	changes     *state.Changes
-	labels      *labels.Labels
-	reads       *reads.Reader
+	// reportedTabs gives each agent pane its tab's number, which agent rows
+	// cannot take from Herdr's `tab` token: that is the whole label.
+	reportedTabs *topicReports
+	changes      *state.Changes
+	labels       *labels.Labels
+	reads        *reads.Reader
 	// failures is the run of polls that have failed in a row, which decides
 	// how loudly the next one is reported.
 	failures failureLog
@@ -76,16 +80,17 @@ func New(
 	instance Instance,
 ) *App {
 	return &App{
-		pollEvery:   cfg.Poll,
-		log:         log,
-		titles:      titles,
-		panes:       panes,
-		topics:      topics,
-		reported:    newTopicReports(herdr.TopicToken),
-		reportedVCS: newTopicReports(herdr.VCSToken),
-		preferAgent: cfg.PreferAgentPane,
-		changes:     state.NewChanges(),
-		labels:      labels.Load(cfg.ManualPath, log),
+		pollEvery:    cfg.Poll,
+		log:          log,
+		titles:       titles,
+		panes:        panes,
+		topics:       topics,
+		reported:     newTopicReports(herdr.TopicToken),
+		reportedVCS:  newTopicReports(herdr.VCSToken),
+		reportedTabs: newTopicReports(herdr.TabNumberToken),
+		preferAgent:  cfg.PreferAgentPane,
+		changes:      state.NewChanges(),
+		labels:       labels.Load(cfg.ManualPath, log),
 		reads: reads.New(reads.Options{
 			ClaudeDirs:      cfg.ClaudeDirs,
 			BranchMax:       cfg.BranchMax,
@@ -270,6 +275,7 @@ func (a *App) readAndRename(ctx context.Context, client herdr.Client) error {
 	if a.topics != nil {
 		// Last, so a poll cut short gives up a topic rather than a tab.
 		a.reportTopics(ctx, client, poll, snapshot, tabs)
+		a.reportTabNumbers(ctx, client, tabs)
 	}
 
 	return nil
@@ -326,6 +332,42 @@ func (a *App) reportTopics(
 	}
 }
 
+// reportTabNumbers gives every agent pane its tab's number, when that changed
+// or is due for a refresh. Panes without an agent are left alone: only agent
+// rows draw the token.
+func (a *App) reportTabNumbers(ctx context.Context, client herdr.Client, tabs []state.TabState) {
+	var ids []string
+
+	for _, tab := range tabs {
+		for _, pane := range tab.Panes {
+			ids = append(ids, pane.ID)
+		}
+	}
+
+	a.reportedTabs.observeIDs(ids)
+
+	for _, tab := range tabs {
+		number := strconv.Itoa(tab.Position)
+
+		for _, pane := range tab.Panes {
+			if ctx.Err() != nil {
+				return
+			}
+
+			if !pane.HasAgent() || !a.reportedTabs.dueFor(pane.ID, "", number) {
+				continue
+			}
+
+			a.sendReport(a.reportedTabs, pane.ID, number, "pane_id", herdr.CodePaneNotFound,
+				func() error {
+					return herdr.ReportPaneToken(
+						ctx, client, pane.ID, topicSource, herdr.TabNumberToken, number, topicTTL,
+					)
+				})
+		}
+	}
+}
+
 // report sends one workspace's token, or clears it when value is empty.
 func (a *App) report(
 	ctx context.Context,
@@ -333,27 +375,43 @@ func (a *App) report(
 	reports *topicReports,
 	id, value string,
 ) {
-	err := herdr.ReportWorkspaceToken(ctx, client, id, topicSource, reports.token, value, topicTTL)
-	log := a.log.With("workspace_id", id, "token", reports.token, "value", value)
+	a.sendReport(reports, id, value, "workspace_id", herdr.CodeWorkspaceNotFound,
+		func() error {
+			return herdr.ReportWorkspaceToken(
+				ctx, client, id, topicSource, reports.token, value, topicTTL,
+			)
+		})
+}
+
+// sendReport sends one token report and records how it went: what kind of
+// resource id names, and the error Herdr gives once it is gone, are the only
+// things a workspace report and a pane report differ in.
+func (a *App) sendReport(
+	reports *topicReports,
+	id, value, idKey, notFound string,
+	send func() error,
+) {
+	err := send()
+	log := a.log.With(idKey, id, "token", reports.token, "value", value)
 
 	switch {
 	case err == nil:
 		reports.sent(id, value)
-		log.Debug("workspace token reported")
-	case herdr.ErrorCode(err) == herdr.CodeWorkspaceNotFound:
+		log.Debug("token reported")
+	case herdr.ErrorCode(err) == notFound:
 		reports.forget(id)
-		log.Debug("workspace closed before its token could be reported")
+		log.Debug("closed before its token could be reported")
 	case errors.Is(err, herdr.ErrUnanswered):
 		// Herdr may still apply it, and the next refresh repairs one that lands
 		// after a newer topic: docs/architecture/poll-loop.md.
 		reports.sent(id, value)
-		log.Warn("workspace token report failed", "error", err)
+		log.Warn("token report failed", "error", err)
 	case herdr.ErrorCode(err) != "":
 		// Herdr refuses the same value the same way every time.
 		reports.rejected(id, value)
-		log.Warn("herdr refused a workspace token", "error", err)
+		log.Warn("herdr refused a token", "error", err)
 	default:
-		log.Warn("workspace token report failed", "error", err)
+		log.Warn("token report failed", "error", err)
 	}
 }
 

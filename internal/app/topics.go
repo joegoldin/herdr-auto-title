@@ -48,10 +48,21 @@ func newTopicReports(token string) *topicReports {
 
 // observe forgets the workspaces the session no longer holds.
 func (r *topicReports) observe(workspaces []herdr.WorkspaceInfo) {
-	live := make(map[string]topicReport, len(workspaces))
+	ids := make([]string, 0, len(workspaces))
 	for _, workspace := range workspaces {
-		if report, known := r.workspaces[workspace.WorkspaceID]; known {
-			live[workspace.WorkspaceID] = report
+		ids = append(ids, workspace.WorkspaceID)
+	}
+
+	r.observeIDs(ids)
+}
+
+// observeIDs forgets every resource not in ids. The reports are keyed by ID
+// alone, so the same bookkeeping serves workspaces and panes.
+func (r *topicReports) observeIDs(ids []string) {
+	live := make(map[string]topicReport, len(ids))
+	for _, id := range ids {
+		if report, known := r.workspaces[id]; known {
+			live[id] = report
 		}
 	}
 
@@ -61,13 +72,19 @@ func (r *topicReports) observe(workspaces []herdr.WorkspaceInfo) {
 // due says whether topic should be reported to the workspace now: it differs
 // from what was, or what was is due for a refresh.
 func (r *topicReports) due(workspace herdr.WorkspaceInfo, topic string) bool {
-	last, known := r.workspaces[workspace.WorkspaceID]
+	return r.dueFor(workspace.WorkspaceID, workspace.Tokens[r.token], topic)
+}
+
+// dueFor is due for any resource: shown is the token as the snapshot shows
+// it, which only a predecessor's report could have left.
+func (r *topicReports) dueFor(id, shown, topic string) bool {
+	last, known := r.workspaces[id]
 
 	switch {
 	case !known:
 		// A predecessor's topic outlives it by up to topicTTL, so one showing
 		// is cleared rather than left to expire.
-		return topic != "" || workspace.Tokens[r.token] != ""
+		return topic != "" || shown != ""
 	case topic != last.topic:
 		return true
 	case topic == "" || last.rejected:

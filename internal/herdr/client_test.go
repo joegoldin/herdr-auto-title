@@ -501,3 +501,31 @@ func TestErrorCode(t *testing.T) {
 		t.Errorf("ErrorCode of a plain error = %q, want empty", got)
 	}
 }
+
+func TestReportPaneTokenSendsTheTokenToThePane(t *testing.T) {
+	t.Parallel()
+
+	srv := newTestServer(t, respondOK)
+
+	if err := ReportPaneToken(
+		context.Background(),
+		srv.client(),
+		"wE:p1",
+		"herdr.auto-title",
+		TabNumberToken,
+		"2",
+		time.Minute,
+	); err != nil {
+		t.Fatalf("ReportPaneToken: %v", err)
+	}
+
+	seen := srv.seen()
+	if len(seen) != 1 || seen[0].Method != MethodPaneReportMetadata {
+		t.Fatalf("server saw %+v, want one pane.report_metadata", seen)
+	}
+
+	want := `{"pane_id":"wE:p1","source":"herdr.auto-title","tokens":{"tab_number":"2"},"ttl_ms":60000}`
+	if got := string(seen[0].Params); got != want {
+		t.Errorf("params = %s, want %s", got, want)
+	}
+}

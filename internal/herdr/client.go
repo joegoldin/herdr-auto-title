@@ -225,3 +225,27 @@ func ReportWorkspaceToken(
 
 	return c.Call(ctx, MethodWorkspaceReportMetadata, params, nil)
 }
+
+// ReportPaneToken shows value as the pane's token named token until ttl runs
+// out, or clears it when value is empty, as ReportWorkspaceToken does for a
+// workspace.
+func ReportPaneToken(
+	ctx context.Context,
+	c Client,
+	paneID, source, token, value string,
+	ttl time.Duration,
+) error {
+	var shown *string
+	if value != "" {
+		shown = &value
+	}
+
+	params := PaneMetadataParams{
+		PaneID: paneID,
+		Source: source,
+		Tokens: map[string]*string{token: shown},
+		TTLMs:  ttl.Milliseconds(),
+	}
+
+	return c.Call(ctx, MethodPaneReportMetadata, params, nil)
+}

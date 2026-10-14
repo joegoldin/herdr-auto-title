@@ -127,7 +127,10 @@ func wantTopics(t *testing.T, h *harness, want ...string) {
 // rather than a wait.
 func fakeClock(h *harness) func(time.Duration) {
 	now := time.Now()
-	h.app.reported.now = func() time.Time { return now }
+	clock := func() time.Time { return now }
+	h.app.reported.now = clock
+	h.app.reportedVCS.now = clock
+	h.app.reportedTabs.now = clock
 
 	return func(d time.Duration) { now = now.Add(d) }
 }
@@ -541,5 +544,57 @@ func TestAPaneOutsideARepositoryReportsNoVCSToken(t *testing.T) {
 
 	if got := vcsSent(h); len(got) != 0 {
 		t.Errorf("vcs sent = %q, want nothing outside a repository", got)
+	}
+}
+
+// tabNumbersSent is every tab_number pane report so far, as pane=value.
+func tabNumbersSent(h *harness) []string {
+	sent := []string{}
+
+	for _, report := range h.client.PaneReports() {
+		if value, carried := report.Tokens[herdr.TabNumberToken]; carried && value != nil {
+			sent = append(sent, report.PaneID+"="+*value)
+		}
+	}
+
+	return sent
+}
+
+// An agent row's first line names the tab by number, which Herdr's own `tab`
+// token cannot: that is the whole label.
+func TestEachAgentPaneIsGivenItsTabsNumberOnce(t *testing.T) {
+	t.Parallel()
+
+	h := startWorkspaces(t, topicConfig(),
+		[]herdr.WorkspaceInfo{{WorkspaceID: theWorkspace, Label: "api", ActiveTabID: "wE:t1"}},
+		[]herdr.TabInfo{
+			{TabID: "wE:t1", WorkspaceID: theWorkspace, Label: "1"},
+			{TabID: "wE:t2", WorkspaceID: theWorkspace, Label: "2"},
+		},
+		[]herdr.PaneInfo{
+			{PaneID: "wE:p1", TabID: "wE:t1", CWD: dashboard, Agent: "claude"},
+			{PaneID: "wE:p2", TabID: "wE:t2", CWD: dashboard, Agent: "pi"},
+			{PaneID: "wE:p3", TabID: "wE:t2", CWD: dashboard},
+		},
+	)
+	h.polls(2)
+
+	if got, want := tabNumbersSent(h), []string{"wE:p1=1", "wE:p2=2"}; !slices.Equal(got, want) {
+		t.Errorf("tab numbers sent = %q, want %q: agent panes only, once each", got, want)
+	}
+}
+
+func TestATabNumberIsRefreshedBeforeItExpires(t *testing.T) {
+	t.Parallel()
+
+	h := oneTabWorkspace(t, topicConfig(), "api", herdr.PaneInfo{Agent: "claude"})
+	advance := fakeClock(h)
+
+	h.poll()
+	advance(topicRefresh)
+	h.poll()
+
+	if got := tabNumbersSent(h); len(got) != 2 {
+		t.Errorf("tab numbers sent = %q, want the number sent again at the refresh", got)
 	}
 }

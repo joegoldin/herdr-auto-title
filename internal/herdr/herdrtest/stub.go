@@ -48,6 +48,15 @@ type WorkspaceReportCall struct {
 	TTLMs       int64
 }
 
+// PaneReportCall is one pane.report_metadata the stub received. A nil token
+// value is a clear.
+type PaneReportCall struct {
+	PaneID string
+	Source string
+	Tokens map[string]*string
+	TTLMs  int64
+}
+
 // Client is an in-memory herdr.Client. Tests change the session it describes
 // and inspect the renames it received.
 type Client struct {
@@ -59,6 +68,7 @@ type Client struct {
 	renames          []RenameCall
 	paneRenames      []PaneRenameCall
 	workspaceReports []WorkspaceReportCall
+	paneReports      []PaneReportCall
 	renameErr        error
 	reportErr        error
 	processErr       error
@@ -203,6 +213,13 @@ func (s *Client) PaneRenames() []PaneRenameCall {
 	return slices.Clone(s.paneRenames)
 }
 
+func (s *Client) PaneReports() []PaneReportCall {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return slices.Clone(s.paneReports)
+}
+
 func (s *Client) WorkspaceReports() []WorkspaceReportCall {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -251,9 +268,34 @@ func (s *Client) Call(ctx context.Context, method string, params any, result any
 	case herdr.MethodWorkspaceReportMetadata:
 		return s.reportMetadata(params)
 
+	case herdr.MethodPaneReportMetadata:
+		return s.reportPaneMetadata(params)
+
 	default:
 		return fmt.Errorf("stub client: unsupported method %s", method)
 	}
+}
+
+func (s *Client) reportPaneMetadata(params any) error {
+	if s.reportErr != nil && !errors.Is(s.reportErr, herdr.ErrUnanswered) {
+		return s.reportErr
+	}
+
+	var call herdr.PaneMetadataParams
+	if err := decode(params, &call); err != nil {
+		return err
+	}
+
+	if _, known := s.panes[call.PaneID]; !known {
+		return &herdr.APIError{
+			Code:    herdr.CodePaneNotFound,
+			Message: "pane " + call.PaneID + " not found",
+		}
+	}
+
+	s.paneReports = append(s.paneReports, PaneReportCall(call))
+
+	return s.reportErr
 }
 
 func (s *Client) processInfo(params any, result any) error {
